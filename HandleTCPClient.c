@@ -2,7 +2,7 @@
 #include <stdio.h> /* for printf() and fprintf() */
 #include <unistd.h> /* for close() */
 
-#define RCVBUFSIZE 32 /* Size of receive buffer */
+#define RCVBUFSIZE 84 /* Size of receive buffer */
 
 void DieWithError(char *errorMessage);
 

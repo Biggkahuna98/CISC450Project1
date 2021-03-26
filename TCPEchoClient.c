@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "TCPPacket.h"
 
-#define RCVBUFSIZE 32 /*Size of receive buffer*/
+#define RCVBUFSIZE 84 /*Size of receive buffer*/
 
 void DieWithError(char *errorMessage);
 
@@ -18,7 +19,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in echoServAddr;
 	unsigned short echoServPort;
 	char *servIP;
-	char *echoString;
+	char echoString[RCVBUFSIZE];
 	char echoBuffer[RCVBUFSIZE];
 	unsigned int echoStringLen;
 	int bytesRcvd, totalBytesRcvd;
@@ -29,8 +30,13 @@ int main(int argc, char *argv[])
 			exit(1);
 	}
 
+	// Get the file name to request from the server
+	printf("Enter file to send: "); // assume valid input
+	scanf("%s", echoString);
+	//printf("%s", echoString);
+
 	servIP = argv[1];
-	echoString = argv[2];
+	//echoString = argv[2];
 
 	if(argc == 4)
 		echoServPort = atoi(argv[3]);

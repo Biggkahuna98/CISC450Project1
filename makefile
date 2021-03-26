@@ -22,5 +22,5 @@ TCPEchoSever.o: TCPEchoSever.c
 				$(CC) -c TCPEchoSever.c
 
 clean:
-		rm -f	TCPEchoClient.o	DieWithError.o HandleTCPClient.o TCPEchoSever.o TCPEchoClient.exe TCPEchoSever.exe
+		rm -f	*.o TCPEchoClient TCPEchoSever
 				

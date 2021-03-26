@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "TCPPacket.h"
 
 #define MAXPENDING 5 /* Maximum outstanding connection requests */
 
