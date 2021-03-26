@@ -1,6 +1,10 @@
 #include <stdio.h> /* for printf() and fprintf() */
 #include <stdlib.h>
 #include <unistd.h> /* for close() */
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <string.h>
 #include "TCPPacket.h"
 
 #define RCVBUFSIZE 84 /* Size of receive buffer */
@@ -26,19 +30,30 @@ void HandleTCPClient(int clntSocket)
 	char fileBuffer[fileBufferLength];
 
 	filePointer = fopen(echoBuffer, "r");
+	// Packet struct
+	tcp_packet pkt;
+	pkt.count = 1;
+	pkt.pack_seq_num = 1;
 
-	char sendByteArray[84];
-	sendByteArray[0] = 
+	int rcvmsgsizeold = recvMsgSize;
 	while(fgets(fileBuffer, fileBufferLength, filePointer)) {
 		printf("%s", fileBuffer);
-
-		recvMsgSize = strlen(fileBuffer) + 1;
+		// Put the line of the file into the packet data section
+		strcpy(pkt.data, fileBuffer);
+		recvMsgSize = rcvmsgsizeold;
 		while (recvMsgSize > 0) {
-			if (send(clntSocket, fileBuffer, recvMsgSize, 0) != recvMsgSize)
+			if (send(clntSocket, &pkt, sizeof(pkt), MSG_NOSIGNAL) != recvMsgSize)
 				DieWithError("send() failed");
 			if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
 				DieWithError("recv() failed");
 		}
+		//send(clntSocket, &pkt, sizeof(pkt), 0);
+		// while (recvMsgSize > 0) {
+		// 	if (send(clntSocket, &pkt, sizeof(tcp_packet), 0) != recvMsgSize)
+		// 		DieWithError("send() failed");
+		// 	if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
+		// 		DieWithError("recv() failed");
+		// }
 	}
 
 	fclose(filePointer);

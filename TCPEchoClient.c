@@ -63,18 +63,28 @@ int main(int argc, char *argv[])
 		DieWithError("send() sent a different number of bytes than expected");
 
 	/*Receive the same string back from the server*/
+	tcp_packet pkt;
+	void *buffer = (void *) &pkt;
+	int rBytes, rv;
 	totalBytesRcvd=0;
-	printf("Received: ");
-	while (totalBytesRcvd < echoStringLen)
-	{
-		/**/
+	printf("Received: \n");
 
-		if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE-1, 0))<=0)
-			DieWithError("recv() failed or connection closed prematurely");
-		totalBytesRcvd += bytesRcvd;
-		echoBuffer[bytesRcvd] = '\0';
-		printf(echoBuffer);
+	for (rBytes = 0; rBytes < sizeof(pkt); rBytes += rv) {
+		if ((rv = recv(sock, buffer + rBytes, sizeof(pkt)-rBytes, 0)) <= 0) {
+			DieWithError("recv() failed or connection closed");
+		}
 	}
+	printf("%d\n", pkt.count);
+	// while (totalBytesRcvd < echoStringLen)
+	// {
+	// 	/**/
+
+	// 	if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE-1, 0))<=0)
+	// 		DieWithError("recv() failed or connection closed prematurely");
+	// 	totalBytesRcvd += bytesRcvd;
+	// 	echoBuffer[bytesRcvd] = '\0';
+	// 	printf(echoBuffer);
+	// }
 
 	printf("\n");
 
