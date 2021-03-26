@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include "TCPPacket.h"
 
-#define RCVBUFSIZE 84 /*Size of receive buffer*/
+#define RCVBUFSIZE 82 /*Size of receive buffer*/
 
 void DieWithError(char *errorMessage);
 
@@ -58,7 +58,6 @@ int main(int argc, char *argv[])
 		DieWithError("connect( ) failed");
 
 	echoStringLen = strlen(echoString);
-
 	/*send the string*/
 	if (send(sock, echoString, echoStringLen, 0)!=echoStringLen)
 		DieWithError("send() sent a different number of bytes than expected");
