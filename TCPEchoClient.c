@@ -85,6 +85,12 @@ int main(int argc, char *argv[])
     	}
     	printf("\n");
 		fflush(stdout);
+		printf("String array is as follows\n");
+    	for (int i = 0; i < sizeof(pkt); i++) {
+        	printf("%c ", echoBuffer[i]);
+    	}
+    	printf("\n");
+		fflush(stdout);
 		//memset(echoBuffer, 0, sizeof(echoBuffer));
 	}
 
