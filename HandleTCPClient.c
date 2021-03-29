@@ -38,19 +38,25 @@ void HandleTCPClient(int clntSocket)
 	pkt.pack_seq_num = 0;
 	fflush(stdout);
 
+	signal(SIGPIPE, SIG_IGN);
+
 	// make buffer (byte stream)
 	unsigned char *buff=(char*)malloc(sizeof(pkt));
 
 	int rcvmsgsizeold = recvMsgSize;
 	while(fgets(fileBuffer, fileBufferLength, filePointer)) {
 		printf("%s", fileBuffer);
+		fflush(stdout);
 		// Put the line of the file into the packet data section
 		
 		recvMsgSize = rcvmsgsizeold;
+		strcpy(pkt.data, fileBuffer);
 		memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
 		
-		if (send(clntSocket, buff, sizeof(buff), MSG_NOSIGNAL) != recvMsgSize)
-				DieWithError("send() failed");
+		send(clntSocket, buff, sizeof(pkt), 0);
+
+		//if (send(clntSocket, buff, sizeof(buff), MSG_NOSIGNAL) != recvMsgSize)
+		//		DieWithError("send() failed");
 		// while (recvMsgSize > 0) {
 			
 		// 	if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
