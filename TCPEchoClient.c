@@ -69,24 +69,28 @@ int main(int argc, char *argv[])
 	int rBytes, rv;
 	totalBytesRcvd=0;
 	printf("Received: \n");
-	while (totalBytesRcvd < sizeof(pkt) * 8)
+	while (totalBytesRcvd < sizeof(pkt) * 10)
 	{
 		/**/
 
-		if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE-1, 0))<=0)
+		if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE, 0))<=0)
 			DieWithError("recv() failed or connection closed prematurely");
 		totalBytesRcvd += bytesRcvd;
 		//echoBuffer[bytesRcvd] = '\0';
 		//memcpy(&pkt, (tcp_packet*)&echoBuffer, sizeof(echoBuffer));
 		//memcpy(recstr, echoBuffer, sizeof(echoBuffer));
+		printf("Count: %d\n",echoBuffer[0]);
+		int count = echoBuffer[0];
+
 		printf("Byte array is as follows\n");
-    	for (int i = 0; i < sizeof(pkt); i++) {
+    	for (int i = 4; i < sizeof(pkt); i++) {
         	printf("%02X ", echoBuffer[i]);
+			//fflush(stdout);
     	}
     	printf("\n");
 		fflush(stdout);
 		printf("String array is as follows\n");
-    	for (int i = 0; i < sizeof(pkt); i++) {
+    	for (int i = 4; i < count+2; i++) {
         	printf("%c ", echoBuffer[i]);
     	}
     	printf("\n");
@@ -99,7 +103,7 @@ int main(int argc, char *argv[])
 	printf("%d\n", pkt.count);
 
 	printf("\n");
-
+	fflush(stdout);
 	close(sock);
 	exit(0);
 }

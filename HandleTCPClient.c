@@ -52,6 +52,9 @@ void HandleTCPClient(int clntSocket)
 		recvMsgSize = rcvmsgsizeold;
 		strcpy(pkt.data, fileBuffer);
 		pkt.count = strlen(fileBuffer);
+		//if(pkt.count != 80){
+			//pkt.data[pkt.count+1] = '\0';
+		//}
 		memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
 		
 		send(clntSocket, buff, sizeof(pkt), 0);
