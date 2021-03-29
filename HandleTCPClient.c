@@ -29,24 +29,35 @@ void HandleTCPClient(int clntSocket)
 	int fileBufferLength = 84;
 	char fileBuffer[fileBufferLength];
 
-	filePointer = fopen(echoBuffer, "r");
+	// FIX ME LATER
+	filePointer = fopen("taco.txt", "r");
 	// Packet struct
 	tcp_packet pkt;
-	pkt.count = 1;
-	pkt.pack_seq_num = 1;
+	memset(&pkt, 0, sizeof(tcp_packet));
+	pkt.count = 7;
+	pkt.pack_seq_num = 0;
+	fflush(stdout);
+
+	// make buffer (byte stream)
+	unsigned char *buff=(char*)malloc(sizeof(pkt));
 
 	int rcvmsgsizeold = recvMsgSize;
 	while(fgets(fileBuffer, fileBufferLength, filePointer)) {
 		printf("%s", fileBuffer);
 		// Put the line of the file into the packet data section
-		strcpy(pkt.data, fileBuffer);
+		
 		recvMsgSize = rcvmsgsizeold;
-		while (recvMsgSize > 0) {
-			if (send(clntSocket, &pkt, sizeof(pkt), MSG_NOSIGNAL) != recvMsgSize)
+		memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
+		
+		if (send(clntSocket, buff, sizeof(buff), MSG_NOSIGNAL) != recvMsgSize)
 				DieWithError("send() failed");
-			if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
-				DieWithError("recv() failed");
-		}
+		// while (recvMsgSize > 0) {
+			
+		// 	if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
+		// 		DieWithError("recv() failed");
+		// }
+		memset(buff, 0, sizeof(buff));
+		pkt.pack_seq_num++;
 		//send(clntSocket, &pkt, sizeof(pkt), 0);
 		// while (recvMsgSize > 0) {
 		// 	if (send(clntSocket, &pkt, sizeof(tcp_packet), 0) != recvMsgSize)
@@ -56,6 +67,7 @@ void HandleTCPClient(int clntSocket)
 		// }
 	}
 
+	free(buff);
 	fclose(filePointer);
 
 	/* Send received string and receive again until end of transmission */
