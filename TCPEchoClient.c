@@ -79,8 +79,16 @@ int main(int argc, char *argv[])
 		//echoBuffer[bytesRcvd] = '\0';
 		//memcpy(&pkt, (tcp_packet*)&echoBuffer, sizeof(echoBuffer));
 		//memcpy(recstr, echoBuffer, sizeof(echoBuffer));
-		printf("Count: %d\n",echoBuffer[0]);
-		int count = echoBuffer[0];
+		/* echoBuffer[0] = ntohl(echoBuffer[0]);
+		echoBuffer[1] = ntohl(echoBuffer[1]);
+		echoBuffer[2] = ntohl(echoBuffer[2]);
+		echoBuffer[3] = ntohl(echoBuffer[3]); */
+		//int counttest = echoBuffer[0] + echoBuffer[1];
+		//counttest = ntohs(counttest);
+		//printf("test: %d\n",counttest);
+		printf("Count: %d, Hex: %02X%02X\n",echoBuffer[0], echoBuffer[0], echoBuffer[1]);
+		printf("Seq num: %d\n",echoBuffer[2]+echoBuffer[3]);
+		int count = echoBuffer[0]+echoBuffer[1];
 
 		printf("Byte array is as follows\n");
     	for (int i = 4; i < sizeof(pkt); i++) {

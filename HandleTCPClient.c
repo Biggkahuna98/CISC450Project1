@@ -51,7 +51,11 @@ void HandleTCPClient(int clntSocket)
 		
 		recvMsgSize = rcvmsgsizeold;
 		strcpy(pkt.data, fileBuffer);
-		pkt.count = strlen(fileBuffer);
+		pkt.count =  strlen(fileBuffer);
+		pkt.pack_seq_num = pkt.pack_seq_num;
+		//pkt.count =  htons(strlen(fileBuffer));
+		//pkt.pack_seq_num = htonl(pkt.pack_seq_num);
+
 		//if(pkt.count != 80){
 			//pkt.data[pkt.count+1] = '\0';
 		//}
