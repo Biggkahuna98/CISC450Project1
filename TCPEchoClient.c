@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 		int count = echoBuffer[0]+echoBuffer[1];
 
 		printf("Byte array is as follows\n");
-    	for (int i = 4; i < sizeof(pkt); i++) {
+    	for (int i = 0; i < sizeof(pkt); i++) {
         	printf("%02X ", echoBuffer[i]);
 			//fflush(stdout);
     	}
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 		fflush(stdout);
 		printf("String array is as follows\n");
     	for (int i = 4; i < count+2; i++) {
-        	printf("%c ", echoBuffer[i]);
+        	printf("%c", echoBuffer[i]);
     	}
     	printf("\n");
 		fflush(stdout);
