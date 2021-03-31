@@ -16,13 +16,22 @@ void HandleTCPClient(int clntSocket)
 	char echoBuffer[RCVBUFSIZE];     /* Buffer for echo string */
 	int recvMsgSize;
 
+	tcp_packet filenamepacket;
+
 	/* Receive message from client */
 	if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0)
 		DieWithError("recv() failed");
 
-	// Print the filename
-	printf("%s\n", echoBuffer);
+	memcpy(&filenamepacket, echoBuffer, sizeof(tcp_packet));
+	// print file name
+	printf("%s\n", filenamepacket.data);
 	fflush(stdout);
+	// Print the filename
+	//printf("%d\n", strlen(echoBuffer));
+	// Our janky way of fixing the buffer
+	//echoBuffer[strlen(echoBuffer) - 2] = '\0';
+	//printf("%s\n", echoBuffer);
+	//fflush(stdout);
 
 	// Read in the file into byte array and then create packets with em
 	FILE* filePointer;
@@ -30,7 +39,9 @@ void HandleTCPClient(int clntSocket)
 	char fileBuffer[fileBufferLength];
 
 	// FIX ME LATER
-	filePointer = fopen(fileBuffer, "r");
+	char fileName[RCVBUFSIZE];
+	// sprintf(fileName, echoBuffer);
+	filePointer = fopen(filenamepacket.data, "r");
 	// Packet struct
 	tcp_packet pkt;
 	memset(&pkt, 0, sizeof(tcp_packet));
@@ -48,10 +59,17 @@ void HandleTCPClient(int clntSocket)
 		strcpy(pkt.data, fileBuffer);
 
 		// Convert the data to the sending format
+		//pkt.count =  strlen(fileBuffer);
+		//pkt.pack_seq_num = pkt.pack_seq_num;
+		printf("Filebuffer size: %d\n", strlen(fileBuffer));
+		printf("pkt_seq_num: %d\n", pkt.pack_seq_num);
+		fflush(stdout);
 		pkt.count =  strlen(fileBuffer);
-		pkt.pack_seq_num = pkt.pack_seq_num;
-		pkt.count =  htons(strlen(fileBuffer));
-		pkt.pack_seq_num = htons(pkt.pack_seq_num);
+		//pkt.pack_seq_num = htons(pkt.pack_seq_num);
+
+		printf("count: %d\n", pkt.count);
+		printf("pkt_seq_num: %d\n", pkt.pack_seq_num);
+		fflush(stdout);
 
 		// Copy the pkt into a byte array
 		memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
@@ -61,6 +79,8 @@ void HandleTCPClient(int clntSocket)
 		// Clear the byte array
 		memset(buff, 0, sizeof(buff));
 		pkt.pack_seq_num++;
+		printf("\n\n");
+		fflush(stdout);
 	}
 
 	// Close and free stuff

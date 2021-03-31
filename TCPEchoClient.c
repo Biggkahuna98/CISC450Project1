@@ -57,17 +57,26 @@ int main(int argc, char *argv[])
 	if (connect(sock, (struct scokaddr*) &echoServAddr, sizeof (echoServAddr))<0)
 		DieWithError("connect( ) failed");
 
-	echoStringLen = strlen(echoString);
-	/*send the string*/
-	if (send(sock, echoString, echoStringLen, 0)!=echoStringLen)
-		DieWithError("send() sent a different number of bytes than expected");
-
-	/*Receive the same string back from the server*/
 	tcp_packet pkt;
 	memset(&pkt, 0, sizeof(tcp_packet));
-	void *buffer = (void *) &pkt;
-	int rBytes, rv;
-	totalBytesRcvd=0;
+
+	echoStringLen = strlen(echoString);
+	pkt.count = echoStringLen;
+	pkt.pack_seq_num = 1;
+	strcpy(pkt.data, echoString);
+	// make buffer (byte stream)
+	unsigned char *buff=(char*)malloc(sizeof(pkt));
+	// Copy the pkt into a byte array
+	memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
+	/*send the packet*/
+	send(sock, buff, sizeof(pkt), 0);
+	// if (send(sock, echoString, echoStringLen, 0)!=echoStringLen)
+	// 	DieWithError("send() sent a different number of bytes than expected");
+
+	/*Receive the same string back from the server*/
+	// void *buffer = (void *) &pkt;
+	// int rBytes, rv;
+	// totalBytesRcvd=0;
 	printf("Received: \n");
 	while (totalBytesRcvd < sizeof(pkt) * 10)
 	{
@@ -83,13 +92,12 @@ int main(int argc, char *argv[])
 		echoBuffer[1] = ntohs(echoBuffer[1]);
 		echoBuffer[2] = ntohs(echoBuffer[2]);
 		echoBuffer[3] = ntohs(echoBuffer[3]);  */
-		short counttest = echoBuffer[0] + echoBuffer[1];
-		printf("before: %d\n", counttest);
-		counttest = ntohs(counttest);
-		printf("after: %d\n",counttest);
-		printf("Count: %d, Hex: %02X%02X\n",echoBuffer[0]+echoBuffer[1], echoBuffer[0], echoBuffer[1]);
-		printf("Seq num: %d\n",echoBuffer[2]+echoBuffer[3]);
-		int count = echoBuffer[0]+echoBuffer[1];
+		memcpy(&pkt, echoBuffer, sizeof(tcp_packet));
+		//pkt.count = ntohs(pkt.count);
+		//pkt.pack_seq_num = ntohs(pkt.pack_seq_num);
+		printf("Count: %d, Hex: %02X%02X\n", pkt.count +echoBuffer[1], echoBuffer[0], echoBuffer[1]);
+		printf("Seq num: %d\n", pkt.pack_seq_num);
+		//int count = echoBuffer[0]+echoBuffer[1];
 
 		printf("Byte array is as follows\n");
     	for (int i = 0; i < sizeof(pkt); i++) {
@@ -99,10 +107,10 @@ int main(int argc, char *argv[])
     	printf("\n");
 		fflush(stdout);
 		printf("String array is as follows\n");
-    	for (int i = 4; i < count+2; i++) {
+    	for (int i = 4; i < pkt.count+2; i++) {
         	printf("%c", echoBuffer[i]);
     	}
-    	printf("\n");
+    	printf("\n\n\n");
 		fflush(stdout);
 		//memset(echoBuffer, 0, sizeof(echoBuffer));
 	}
