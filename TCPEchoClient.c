@@ -94,24 +94,21 @@ int main(int argc, char *argv[])
 		echoBuffer[2] = ntohs(echoBuffer[2]);
 		echoBuffer[3] = ntohs(echoBuffer[3]);  */
 		memcpy(&pkt, echoBuffer, sizeof(tcp_packet));
-		//pkt.count = ntohs(pkt.count);
-		//pkt.pack_seq_num = ntohs(pkt.pack_seq_num);
-		printf("Count: %d, Hex: %02X%02X\n", pkt.count +echoBuffer[1], echoBuffer[0], echoBuffer[1]);
+		printf("Count: %d, Hex: %02X%02X\n", pkt.count, echoBuffer[0], echoBuffer[1]);
 		printf("Seq num: %d\n", pkt.pack_seq_num);
 		//int count = echoBuffer[0]+echoBuffer[1];
-		int count = echoBuffer[0]+echoBuffer[1];
-		if(count < 0){
+		if(pkt.count < 0){
 			
-			printf("ending %d\n",count);
+			printf("ending %d\n", pkt.count);
 			break;
 		}
-		printf("Packet %d received with %d data bytes\n", echoBuffer[2]+echoBuffer[3], count);
-		short counttest = echoBuffer[0] + echoBuffer[1];
-		printf("before: %d\n", counttest);
-		counttest = ntohs(counttest);
-		printf("after: %d\n",counttest);
-		printf("Count: %d, Hex: %02X%02X\n",echoBuffer[0]+echoBuffer[1], echoBuffer[0], echoBuffer[1]);
-		printf("Seq num: %d\n",echoBuffer[2]+echoBuffer[3]);
+		// printf("Packet %d received with %d data bytes\n", echoBuffer[2]+echoBuffer[3], count);
+		// short counttest = echoBuffer[0] + echoBuffer[1];
+		// printf("before: %d\n", counttest);
+		// counttest = ntohs(counttest);
+		// printf("after: %d\n",counttest);
+		// printf("Count: %d, Hex: %02X%02X\n",echoBuffer[0]+echoBuffer[1], echoBuffer[0], echoBuffer[1]);
+		// printf("Seq num: %d\n",echoBuffer[2]+echoBuffer[3]);
 		
 
 
