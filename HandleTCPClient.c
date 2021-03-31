@@ -22,6 +22,7 @@ void HandleTCPClient(int clntSocket)
 
 	// Print the filename
 	printf("%s\n", echoBuffer);
+	printf("%d\n",strlen(echoBuffer));
 	fflush(stdout);
 
 	// Read in the file into byte array and then create packets with em
@@ -30,7 +31,7 @@ void HandleTCPClient(int clntSocket)
 	char fileBuffer[fileBufferLength];
 
 	// FIX ME LATER
-	filePointer = fopen(fileBuffer, "r");
+	filePointer = fopen("taco.txt", "r");
 	// Packet struct
 	tcp_packet pkt;
 	memset(&pkt, 0, sizeof(tcp_packet));
@@ -43,28 +44,59 @@ void HandleTCPClient(int clntSocket)
 	// make buffer (byte stream)
 	unsigned char *buff=(char*)malloc(sizeof(pkt));
 
+	int rcvmsgsizeold = recvMsgSize;
 	while(fgets(fileBuffer, fileBufferLength, filePointer)) {
+		printf("%s", fileBuffer);
+		fflush(stdout);
 		// Put the line of the file into the packet data section
+		
+		recvMsgSize = rcvmsgsizeold;
 		strcpy(pkt.data, fileBuffer);
-
-		// Convert the data to the sending format
 		pkt.count =  strlen(fileBuffer);
 		pkt.pack_seq_num = pkt.pack_seq_num;
 		pkt.count =  htons(strlen(fileBuffer));
 		pkt.pack_seq_num = htons(pkt.pack_seq_num);
 
-		// Copy the pkt into a byte array
+		//if(pkt.count != 80){
+			//pkt.data[pkt.count+1] = '\0';
+		//}
 		memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
-		// Send the byte array over the socket
+		
 		send(clntSocket, buff, sizeof(pkt), 0);
-
-		// Clear the byte array
+		printf("Packet %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+		//if (send(clntSocket, buff, sizeof(buff), MSG_NOSIGNAL) != recvMsgSize)
+		//		DieWithError("send() failed");
+		// while (recvMsgSize > 0) {
+			
+		// 	if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
+		// 		DieWithError("recv() failed");
+		// }
 		memset(buff, 0, sizeof(buff));
 		pkt.pack_seq_num++;
+		//send(clntSocket, &pkt, sizeof(pkt), 0);
+		// while (recvMsgSize > 0) {
+		// 	if (send(clntSocket, &pkt, sizeof(tcp_packet), 0) != recvMsgSize)
+		// 		DieWithError("send() failed");
+		// 	if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
+		// 		DieWithError("recv() failed");
+		// }
 	}
 
-	// Close and free stuff
 	free(buff);
 	fclose(filePointer);
+
+	/* Send received string and receive again until end of transmission */
+	// while (recvMsgSize > 0) /* zero indicates end of transmission */
+	// {
+	// 	/* Echo message back to client */
+	// 	if (send(clntSocket, echoBuffer, recvMsgSize, 0) != recvMsgSize)
+	// 		DieWithError("send() failed");
+
+	// 	/* See if there is more data to receive */
+	// 	if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0)
+	// 		DieWithError("recv() failed");
+
+	// }
+
 	close(clntSocket); /* Close client socket */
 }

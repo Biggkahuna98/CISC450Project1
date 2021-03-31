@@ -83,13 +83,16 @@ int main(int argc, char *argv[])
 		echoBuffer[1] = ntohs(echoBuffer[1]);
 		echoBuffer[2] = ntohs(echoBuffer[2]);
 		echoBuffer[3] = ntohs(echoBuffer[3]);  */
+		int count = echoBuffer[0]+echoBuffer[1];
+		printf("Packet %d transmitted with %d data bytes\n", echoBuffer[2]+echoBuffer[3], count);
 		short counttest = echoBuffer[0] + echoBuffer[1];
 		printf("before: %d\n", counttest);
 		counttest = ntohs(counttest);
 		printf("after: %d\n",counttest);
 		printf("Count: %d, Hex: %02X%02X\n",echoBuffer[0]+echoBuffer[1], echoBuffer[0], echoBuffer[1]);
 		printf("Seq num: %d\n",echoBuffer[2]+echoBuffer[3]);
-		int count = echoBuffer[0]+echoBuffer[1];
+		
+
 
 		printf("Byte array is as follows\n");
     	for (int i = 0; i < sizeof(pkt); i++) {
