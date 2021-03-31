@@ -9,7 +9,7 @@
 #define MAXPENDING 5 /* Maximum outstanding connection requests */
 
 void DieWithError(char *errorMessage); /* Error handling function */
-void HandleTCPClient(int clntSocket);  /* TCP client handling function */
+int HandleTCPClient(int clntSocket, int servSocket);  /* TCP client handling function */
 
 int main(int argc, char *argv[])
 {
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 	/* Mark the socket so it will listen for incoming connections */
 	if (listen(servSock, MAXPENDING) < 0)
 		DieWithError("listen() failed");
-
+	int x = 1;
 	for (;;) /* Run forever */
 	{
 		/* Set the size of the in-out parameter */
@@ -56,7 +56,13 @@ int main(int argc, char *argv[])
 			DieWithError("accept() failed");
 		/* clntSock is connected to a client! */
 		printf("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
-		HandleTCPClient (clntSock);
+		fflush(stdout);
+		x = HandleTCPClient (clntSock, servSock);
+		if(x==0){
+			
+			exit(0);
+		}
+		
 }
 /* NOT REACHED */
 }

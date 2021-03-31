@@ -78,13 +78,14 @@ int main(int argc, char *argv[])
 	// int rBytes, rv;
 	// totalBytesRcvd=0;
 	printf("Received: \n");
-	while (totalBytesRcvd < sizeof(pkt) * 10)
+	while (1)
 	{
 		/**/
 
 		if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE, 0))<=0)
 			DieWithError("recv() failed or connection closed prematurely");
 		totalBytesRcvd += bytesRcvd;
+		
 		//echoBuffer[bytesRcvd] = '\0';
 		//memcpy(&pkt, (tcp_packet*)&echoBuffer, sizeof(echoBuffer));
 		//memcpy(recstr, echoBuffer, sizeof(echoBuffer));
@@ -98,6 +99,21 @@ int main(int argc, char *argv[])
 		printf("Count: %d, Hex: %02X%02X\n", pkt.count +echoBuffer[1], echoBuffer[0], echoBuffer[1]);
 		printf("Seq num: %d\n", pkt.pack_seq_num);
 		//int count = echoBuffer[0]+echoBuffer[1];
+		int count = echoBuffer[0]+echoBuffer[1];
+		if(count < 0){
+			
+			printf("ending %d\n",count);
+			break;
+		}
+		printf("Packet %d received with %d data bytes\n", echoBuffer[2]+echoBuffer[3], count);
+		short counttest = echoBuffer[0] + echoBuffer[1];
+		printf("before: %d\n", counttest);
+		counttest = ntohs(counttest);
+		printf("after: %d\n",counttest);
+		printf("Count: %d, Hex: %02X%02X\n",echoBuffer[0]+echoBuffer[1], echoBuffer[0], echoBuffer[1]);
+		printf("Seq num: %d\n",echoBuffer[2]+echoBuffer[3]);
+		
+
 
 		printf("Byte array is as follows\n");
     	for (int i = 0; i < sizeof(pkt); i++) {
@@ -117,7 +133,7 @@ int main(int argc, char *argv[])
 
 	
 	
-	printf("%d\n", pkt.count);
+	//printf("%d\n", pkt.count);
 
 	printf("\n");
 	fflush(stdout);

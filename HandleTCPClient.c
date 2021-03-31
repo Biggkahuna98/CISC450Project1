@@ -11,7 +11,7 @@
 
 void DieWithError(char *errorMessage);
 
-void HandleTCPClient(int clntSocket)
+int HandleTCPClient(int clntSocket, int servSocket)
 {
 	char echoBuffer[RCVBUFSIZE];     /* Buffer for echo string */
 	int recvMsgSize;
@@ -54,37 +54,67 @@ void HandleTCPClient(int clntSocket)
 	// make buffer (byte stream)
 	unsigned char *buff=(char*)malloc(sizeof(pkt));
 
+	int rcvmsgsizeold = recvMsgSize;
 	while(fgets(fileBuffer, fileBufferLength, filePointer)) {
-		// Put the line of the file into the packet data section
-		strcpy(pkt.data, fileBuffer);
-
-		// Convert the data to the sending format
-		//pkt.count =  strlen(fileBuffer);
-		//pkt.pack_seq_num = pkt.pack_seq_num;
-		printf("Filebuffer size: %d\n", strlen(fileBuffer));
-		printf("pkt_seq_num: %d\n", pkt.pack_seq_num);
+		printf("%s", fileBuffer);
 		fflush(stdout);
+		// Put the line of the file into the packet data section
+		
+		recvMsgSize = rcvmsgsizeold;
+		strcpy(pkt.data, fileBuffer);
 		pkt.count =  strlen(fileBuffer);
+		pkt.pack_seq_num = pkt.pack_seq_num;
+		//pkt.count =  htons(strlen(fileBuffer));
 		//pkt.pack_seq_num = htons(pkt.pack_seq_num);
 
-		printf("count: %d\n", pkt.count);
-		printf("pkt_seq_num: %d\n", pkt.pack_seq_num);
-		fflush(stdout);
-
-		// Copy the pkt into a byte array
+		//if(pkt.count != 80){
+			//pkt.data[pkt.count+1] = '\0';
+		//}
 		memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
-		// Send the byte array over the socket
+		
 		send(clntSocket, buff, sizeof(pkt), 0);
-
-		// Clear the byte array
+		printf("Packet %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+		//if (send(clntSocket, buff, sizeof(buff), MSG_NOSIGNAL) != recvMsgSize)
+		//		DieWithError("send() failed");
+		// while (recvMsgSize > 0) {
+			
+		// 	if ((recvMsgSize = recv(clntSocket, fileBuffer, RCVBUFSIZE, 0)) < 0)
+		// 		DieWithError("recv() failed");
+		// }
 		memset(buff, 0, sizeof(buff));
 		pkt.pack_seq_num++;
 		printf("\n\n");
 		fflush(stdout);
 	}
+	strcpy(pkt.data, "\0");
+	pkt.count =  -1;
+	pkt.pack_seq_num = pkt.pack_seq_num;
+	//pkt.count =  htons(strlen(fileBuffer));
+	//pkt.pack_seq_num = htons(pkt.pack_seq_num);
+	memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
+	send(clntSocket, buff, sizeof(pkt), 0);
+	printf("End of Transmission Packet with sequence number %d transmitted with 1 data bytes\n", pkt.pack_seq_num);
 
-	// Close and free stuff
+	memset(buff, 0, sizeof(buff));
+	pkt.pack_seq_num++;
+
 	free(buff);
 	fclose(filePointer);
+
+	/* Send received string and receive again until end of transmission */
+	// while (recvMsgSize > 0) /* zero indicates end of transmission */
+	// {
+	// 	/* Echo message back to client */
+	// 	if (send(clntSocket, echoBuffer, recvMsgSize, 0) != recvMsgSize)
+	// 		DieWithError("send() failed");
+
+	// 	/* See if there is more data to receive */
+	// 	if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0)
+	// 		DieWithError("recv() failed");
+
+	// }
+
 	close(clntSocket); /* Close client socket */
+	close(servSocket);
+	return 0;
 }
