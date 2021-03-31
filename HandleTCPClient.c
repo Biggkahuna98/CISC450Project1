@@ -23,9 +23,11 @@ int HandleTCPClient(int clntSocket, int servSocket)
 		DieWithError("recv() failed");
 
 	memcpy(&filenamepacket, echoBuffer, sizeof(tcp_packet));
+	printf("Packet %d received with %d data bytes\n", filenamepacket.pack_seq_num, filenamepacket.count);
+
 	// print file name
-	printf("%s\n", filenamepacket.data);
-	fflush(stdout);
+	//printf("%s\n", filenamepacket.data);
+	//fflush(stdout);
 	// Print the filename
 	//printf("%d\n", strlen(echoBuffer));
 	// Our janky way of fixing the buffer
@@ -46,18 +48,18 @@ int HandleTCPClient(int clntSocket, int servSocket)
 	tcp_packet pkt;
 	memset(&pkt, 0, sizeof(tcp_packet));
 	pkt.count = 7;
-	pkt.pack_seq_num = 0;
+	pkt.pack_seq_num = 1;
 	fflush(stdout);
 
 	signal(SIGPIPE, SIG_IGN);
 
 	// make buffer (byte stream)
 	unsigned char *buff=(char*)malloc(sizeof(pkt));
-
+	int total = 0;
 	int rcvmsgsizeold = recvMsgSize;
 	while(fgets(fileBuffer, fileBufferLength, filePointer)) {
-		printf("%s", fileBuffer);
-		fflush(stdout);
+		//printf("%s", fileBuffer);
+		//fflush(stdout);
 		// Put the line of the file into the packet data section
 		
 		recvMsgSize = rcvmsgsizeold;
@@ -74,6 +76,8 @@ int HandleTCPClient(int clntSocket, int servSocket)
 		
 		send(clntSocket, buff, sizeof(pkt), 0);
 		printf("Packet %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+		
+		total += pkt.count;
 		//if (send(clntSocket, buff, sizeof(buff), MSG_NOSIGNAL) != recvMsgSize)
 		//		DieWithError("send() failed");
 		// while (recvMsgSize > 0) {
@@ -86,14 +90,15 @@ int HandleTCPClient(int clntSocket, int servSocket)
 		printf("\n\n");
 		fflush(stdout);
 	}
-	strcpy(pkt.data, "\0");
-	pkt.count =  -1;
+	strcpy(pkt.data, "");
+	pkt.count =  0;
 	pkt.pack_seq_num = pkt.pack_seq_num;
 	//pkt.count =  htons(strlen(fileBuffer));
 	//pkt.pack_seq_num = htons(pkt.pack_seq_num);
 	memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
 	send(clntSocket, buff, sizeof(pkt), 0);
 	printf("End of Transmission Packet with sequence number %d transmitted with 1 data bytes\n", pkt.pack_seq_num);
+	printf("Total number of data bytes received: %d", total);
 
 	memset(buff, 0, sizeof(buff));
 	pkt.pack_seq_num++;
