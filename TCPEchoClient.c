@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
 
 	echoStringLen = strlen(echoString);
 	/*send the string*/
+	
 	if (send(sock, echoString, echoStringLen, 0)!=echoStringLen)
 		DieWithError("send() sent a different number of bytes than expected");
 
@@ -69,13 +70,14 @@ int main(int argc, char *argv[])
 	int rBytes, rv;
 	totalBytesRcvd=0;
 	printf("Received: \n");
-	while (totalBytesRcvd < sizeof(pkt) * 10)
+	while (1)
 	{
 		/**/
 
 		if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE, 0))<=0)
 			DieWithError("recv() failed or connection closed prematurely");
 		totalBytesRcvd += bytesRcvd;
+		
 		//echoBuffer[bytesRcvd] = '\0';
 		//memcpy(&pkt, (tcp_packet*)&echoBuffer, sizeof(echoBuffer));
 		//memcpy(recstr, echoBuffer, sizeof(echoBuffer));
@@ -84,7 +86,12 @@ int main(int argc, char *argv[])
 		echoBuffer[2] = ntohs(echoBuffer[2]);
 		echoBuffer[3] = ntohs(echoBuffer[3]);  */
 		int count = echoBuffer[0]+echoBuffer[1];
-		printf("Packet %d transmitted with %d data bytes\n", echoBuffer[2]+echoBuffer[3], count);
+		if(count < 0){
+			
+			printf("ending %d\n",count);
+			break;
+		}
+		printf("Packet %d received with %d data bytes\n", echoBuffer[2]+echoBuffer[3], count);
 		short counttest = echoBuffer[0] + echoBuffer[1];
 		printf("before: %d\n", counttest);
 		counttest = ntohs(counttest);
@@ -112,7 +119,7 @@ int main(int argc, char *argv[])
 
 	
 	
-	printf("%d\n", pkt.count);
+	//printf("%d\n", pkt.count);
 
 	printf("\n");
 	fflush(stdout);

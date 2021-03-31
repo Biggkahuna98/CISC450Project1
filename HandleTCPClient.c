@@ -11,7 +11,7 @@
 
 void DieWithError(char *errorMessage);
 
-void HandleTCPClient(int clntSocket)
+int HandleTCPClient(int clntSocket, int servSocket)
 {
 	char echoBuffer[RCVBUFSIZE];     /* Buffer for echo string */
 	int recvMsgSize;
@@ -54,8 +54,8 @@ void HandleTCPClient(int clntSocket)
 		strcpy(pkt.data, fileBuffer);
 		pkt.count =  strlen(fileBuffer);
 		pkt.pack_seq_num = pkt.pack_seq_num;
-		pkt.count =  htons(strlen(fileBuffer));
-		pkt.pack_seq_num = htons(pkt.pack_seq_num);
+		//pkt.count =  htons(strlen(fileBuffer));
+		//pkt.pack_seq_num = htons(pkt.pack_seq_num);
 
 		//if(pkt.count != 80){
 			//pkt.data[pkt.count+1] = '\0';
@@ -81,6 +81,17 @@ void HandleTCPClient(int clntSocket)
 		// 		DieWithError("recv() failed");
 		// }
 	}
+	strcpy(pkt.data, "\0");
+	pkt.count =  -1;
+	pkt.pack_seq_num = pkt.pack_seq_num;
+	//pkt.count =  htons(strlen(fileBuffer));
+	//pkt.pack_seq_num = htons(pkt.pack_seq_num);
+	memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
+	send(clntSocket, buff, sizeof(pkt), 0);
+	printf("End of Transmission Packet with sequence number %d transmitted with 1 data bytes\n", pkt.pack_seq_num);
+
+	memset(buff, 0, sizeof(buff));
+	pkt.pack_seq_num++;
 
 	free(buff);
 	fclose(filePointer);
@@ -99,4 +110,6 @@ void HandleTCPClient(int clntSocket)
 	// }
 
 	close(clntSocket); /* Close client socket */
+	close(servSocket);
+	return 0;
 }
