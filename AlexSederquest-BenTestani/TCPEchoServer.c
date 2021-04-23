@@ -9,7 +9,7 @@
 #define MAXPENDING 5 /* Maximum outstanding connection requests */
 
 void DieWithError(char *errorMessage); /* Error handling function */
-int HandleTCPClient(int clntSocket, int servSocket);  /* TCP client handling function */
+int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr, struct sockaddr_in cliaddr);  /* TCP client handling function */
 
 int main(int argc, char *argv[])
 {
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 		/* clntSock is connected to a client! */
 		printf("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
 		fflush(stdout);
-		x = HandleTCPClient (clntSock, servSock);
+		x = HandleTCPClient (clntSock, servSock, echoServAddr, echoClntAddr);
 		if(x==0){
 			
 			exit(0);

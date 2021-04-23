@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 #include "TCPPacket.h"
 
 #define RCVBUFSIZE 84 /*Size of receive buffer*/
@@ -15,6 +16,9 @@ void DieWithError(char *errorMessage);
 
 int main(int argc, char *argv[])
 {
+	// Seed random number generator with current time
+	srand(time(0));
+	float acklossratio = 0.15f;
 	int sock; /*Socket descriptor*/
 	struct sockaddr_in echoServAddr;
 	unsigned short echoServPort;
@@ -71,7 +75,8 @@ int main(int argc, char *argv[])
 	// Copy the pkt into a byte array
 	memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
 	/*send the packet with the file name*/
-	send(sock, buff, sizeof(pkt), 0);
+	//send(sock, buff, sizeof(pkt), 0);
+	sendto(sock, buff, sizeof(buff), 0, (struct sockaddr_in*)NULL, sizeof(echoServAddr));
 	printf("Packet %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
 
 	// Create the file pointer for writing to
@@ -80,14 +85,33 @@ int main(int argc, char *argv[])
 	// Open the file sent from the client
 	filePointer = fopen("out.txt", "w+");
 
+	// Create the ACK packet
+	ack_packet ack;
+	memset(&ack, 0, sizeof(ack_packet));
+	// make ack buffer (byte stream)
+	unsigned char *ack_buff=(char*)malloc(sizeof(ack));
+
 	// Loop for receiving data back from the server
 	int total = 0;
 	printf("Received: \n");
 	while (1)
 	{
 		// Receive data from server, store in the buffer named echoBuffer
-		if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE, 0))<=0)
-			DieWithError("recv() failed or connection closed prematurely");
+		// if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE, 0))<=0)
+		// 	DieWithError("recv() failed or connection closed prematurely");
+		bytesRcvd = recvfrom(sock, echoBuffer, sizeof(echoBuffer), 0, (struct sockarr_in*)NULL, NULL);
+		if (SimulateLoss(acklossratio) == 0) {
+			// send ACK
+			if (ack.ack_seq == 0)
+				ack.ack_seq = 1;
+			else
+				ack.ack_seq = 0;
+			// Copy the pkt into a byte array
+			memcpy(ack_buff, (const unsigned char*)&ack, sizeof(ack));
+			sendto(sock, ack_buff, sizeof(ack_buff), 0, (struct sockaddr_in*)NULL, sizeof(echoServAddr));
+		} else {
+			printf("Ack lost, rip\n");
+		}
 		totalBytesRcvd += bytesRcvd;
 		
 		// Convert the byte array (echoBuffer) back into a tcp_packet with the name of pkt
@@ -121,4 +145,13 @@ int main(int argc, char *argv[])
 	// Close the socket
 	close(sock);
 	exit(0);
+}
+
+int SimulateACKLoss(float ackLossRatio) {
+	return 0;
+	// rand() % (upper - lower + 1) + lower for random number between 1 and 0
+	if (rand() % (1 - 0 + 1) + 0 < ackLossRatio)
+		return 1;
+	else
+		return 0;
 }
