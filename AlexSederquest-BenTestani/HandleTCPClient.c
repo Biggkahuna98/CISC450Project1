@@ -11,16 +11,27 @@
 
 #define RCVBUFSIZE 84 /* Size of receive buffer */
 
+int tries = 0; // times a packet was sent for the timeout signal handler
+
 void DieWithError(char *errorMessage);
 int SimulateLoss(float packetLossRatio);
+int power(int x, int y);
+void CatchAlarm(int ignored); // handler for SIGALRM
 
-int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr, struct sockaddr_in cliaddr)
+int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr, struct sockaddr_in cliaddr, int tout, float plr)
 {
 	// Seed random number generator with current time
-	srand(time(0));
-	float pktlossratio = 0.15f;
+	time_t t;
+	srand((unsigned) time(&t));
+	float pktlossratio = plr;
 	char echoBuffer[RCVBUFSIZE];     /* Buffer for echo string */
 	int recvMsgSize;
+	struct sigaction myAction; // setting for signal handler
+
+	// Create timeout struct
+	struct timeval timeout;
+	timeout.tv_sec = tout;
+	timeout.tv_usec = power(10, tout);
 
 	// create this temp packet for receiving the file name from the client
 	tcp_packet filenamepacket;
@@ -64,11 +75,10 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 	// make ack buffer (byte stream)
 	unsigned char *ack_buff=(char*)malloc(sizeof(ack));
 
-	// Create timeout struct
-	struct timeval timeout;
-	timeout.tv_sec = 10;
-	timeout.tv_usec = 0;
+	// Set receive timeout
+	setsockopt(clntSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
+	myAction.sa_handler = CatchAlarm;
 	int total = 0;
 	int len = 0;
 	// Read in the file line by line
@@ -80,6 +90,7 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 			strcpy(pkt.data, fileBuffer);
 			// set the count to the length of the line (the byte count)
 			pkt.count = strlen(fileBuffer);
+			pkt.pack_seq_num = pkt.pack_seq_num == 1 ? 0 : 1;
 			//pkt.count =  htons(strlen(fileBuffer));
 			//pkt.pack_seq_num = htons(pkt.pack_seq_num);
 
@@ -97,19 +108,15 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 
 			// Clear the buffer
 			memset(buff, 0, sizeof(buff));
-			// Increment the sequence
-			pkt.pack_seq_num++;
 			printf("\n");
 			fflush(stdout);
 
-			// Set receive timeout
-			setsockopt(clntSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 			// Receive ACK
 			recvfrom(clntSocket, ack_buff, sizeof(ack_buff), 0, (struct sockarr_in*)NULL, NULL);
 		
 			// Convert the byte array (echoBuffer) back into a tcp_packet with the name of pkt
 			memcpy(&ack, ack_buff, sizeof(ack_packet));
-			printf("ACK revieced: %d\n", ack.ack_seq);
+			printf("ACK %d received\n", ack.ack_seq);
 		} else {
 			printf("Packet lost, boo-hoo\n");
 		}
@@ -143,10 +150,20 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 }
 
 int SimulateLoss(float packetLossRatio) {
-	return 0;
 	// rand() % (upper - lower + 1) + lower for random number between 1 and 0
 	if (rand() % (1 - 0 + 1) + 0 < packetLossRatio)
 		return 1;
 	else
 		return 0;
+}
+
+int power(int x, int y) {
+	int ret = 1;
+	for (int i = 0; i < y; i++)
+		ret *= x;
+	return ret;
+}
+
+void CatchAlarm(int ignored) {
+	
 }

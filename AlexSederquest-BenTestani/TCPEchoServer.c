@@ -9,7 +9,7 @@
 #define MAXPENDING 5 /* Maximum outstanding connection requests */
 
 void DieWithError(char *errorMessage); /* Error handling function */
-int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr, struct sockaddr_in cliaddr);  /* TCP client handling function */
+int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr, struct sockaddr_in cliaddr, int tout, float plr);  /* TCP client handling function */
 
 int main(int argc, char *argv[])
 {
@@ -20,14 +20,18 @@ int main(int argc, char *argv[])
 	struct sockaddr_in echoClntAddr; /* Client address */
 	unsigned short echoServPort; /* Server port */
 	unsigned int clntLen; /* Length of client address data structure */
+	int timeout_in_seconds;
+	float pkt_loss_ratio;
 
-	if (argc != 2) /* Test for correct number of arguments */
+	if (argc != 4) /* Test for correct number of arguments */
 	{
-		fprintf(stderr, "Usage: %s <Server Port>\n", argv[0]) ;
+		fprintf(stderr, "Usage: %s <Server Port> <Timeout value in seconds> <Packet Loss Ratio between 0 and 1>\n", argv[0]) ;
 		exit(1);
 	}
 
 	echoServPort = atoi(argv[1]); /* First arg: local port */
+	timeout_in_seconds = atoi(argv[2]); // 2nd arg is the timeout as integer
+	pkt_loss_ratio = strtof(argv[3], NULL);
 
 	/* Create socket for incoming connections */
 	if ((servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
@@ -57,7 +61,7 @@ int main(int argc, char *argv[])
 		/* clntSock is connected to a client! */
 		printf("Handling client %s\n", inet_ntoa(echoClntAddr.sin_addr));
 		fflush(stdout);
-		x = HandleTCPClient (clntSock, servSock, echoServAddr, echoClntAddr);
+		x = HandleTCPClient (clntSock, servSock, echoServAddr, echoClntAddr, timeout_in_seconds, pkt_loss_ratio);
 		if(x==0){
 			
 			exit(0);

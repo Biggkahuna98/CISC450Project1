@@ -17,8 +17,10 @@ void DieWithError(char *errorMessage);
 int main(int argc, char *argv[])
 {
 	// Seed random number generator with current time
-	srand(time(0));
-	float acklossratio = 0.15f;
+	time_t t;
+	srand((unsigned) time(&t));
+	
+	float acklossratio = 0.0f;
 	int sock; /*Socket descriptor*/
 	struct sockaddr_in echoServAddr;
 	unsigned short echoServPort;
@@ -28,26 +30,27 @@ int main(int argc, char *argv[])
 	unsigned int echoStringLen;
 	int bytesRcvd, totalBytesRcvd;
 
-	if ((argc<3) || (argc>3))
+	if (argc != 5)
 	{
-			fprintf(stderr, "Usage: %s <Server IP> <Echo Port>\n"), argv[0];
+			fprintf(stderr, "Usage: %s <Server IP> <Echo Port> <File> <Ack Loss Ratio\n"), argv[0];
 			exit(1);
 	}
 
 	// Get the file name to request from the server
-	printf("Enter file to send: "); // assume valid input
-	scanf("%s", echoString);
+	// printf("Enter file to send: "); // assume valid input
+	// scanf("%s", echoString);
 
 	servIP = argv[1];
-
-	if(argc == 3)
-		echoServPort = atoi(argv[2]);
-	else
-		echoServPort = 7;
+	strcpy(echoString, argv[3]);
+	acklossratio = strtof(argv[4], NULL);
+	echoServPort = atoi(argv[2]);
 
 	/*Create a socket using TCP*/
 	if((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0)
 		DieWithError("socket() failed");
+
+	fprintf("Filename: %s\n", echoString);
+	fflush(stdout);
 
 	/*Construct the server address structure*/
 	memset(&echoServAddr, 0, sizeof(echoServAddr));
@@ -102,10 +105,7 @@ int main(int argc, char *argv[])
 		bytesRcvd = recvfrom(sock, echoBuffer, sizeof(echoBuffer), 0, (struct sockarr_in*)NULL, NULL);
 		if (SimulateLoss(acklossratio) == 0) {
 			// send ACK
-			if (ack.ack_seq == 0)
-				ack.ack_seq = 1;
-			else
-				ack.ack_seq = 0;
+			ack.ack_seq = ack.ack_seq == 1 ? 0 : 1;
 			// Copy the pkt into a byte array
 			memcpy(ack_buff, (const unsigned char*)&ack, sizeof(ack));
 			sendto(sock, ack_buff, sizeof(ack_buff), 0, (struct sockaddr_in*)NULL, sizeof(echoServAddr));
@@ -148,7 +148,6 @@ int main(int argc, char *argv[])
 }
 
 int SimulateACKLoss(float ackLossRatio) {
-	return 0;
 	// rand() % (upper - lower + 1) + lower for random number between 1 and 0
 	if (rand() % (1 - 0 + 1) + 0 < ackLossRatio)
 		return 1;
