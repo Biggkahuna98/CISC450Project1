@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <arpa/inet.h> /*for sockaddr_in and inet_addr()*/
 #include <unistd.h> /* for close() */
+#include <errno.h>
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -77,33 +78,43 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 
 	// Set receive timeout
 	setsockopt(clntSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+	int test;
+	//getsockopt(clntSocket, SOL_SOCKET, SO_RCVTIMEO, &test, sizeof(test));
+	//printf("getsockopt: %d", test);
 
 	myAction.sa_handler = CatchAlarm;
+	if (sigfillset(&myAction.sa_mask) < 0) // block everything in handler
+		DieWithError("sigfillset() failed");
+	myAction.sa_flags = 0;
+
+	if (sigaction(SIGALRM, &myAction, 0) < 0)
+		DieWithError("sigaction() failed for SIGALRM");
+
 	int total = 0;
 	int len = 0;
+	int respStringLen;
 	// Read in the file line by line
 	// Create a packet from each line
 	// Send the packet
 	while(fgets(fileBuffer, fileBufferLength, filePointer)) {
-		if (SimulateLoss(pktlossratio) == 0) {
-			// Copy the line into the packet's data
-			strcpy(pkt.data, fileBuffer);
-			// set the count to the length of the line (the byte count)
-			pkt.count = strlen(fileBuffer);
-			pkt.pack_seq_num = pkt.pack_seq_num == 1 ? 0 : 1;
-			//pkt.count =  htons(strlen(fileBuffer));
-			//pkt.pack_seq_num = htons(pkt.pack_seq_num);
+		// Copy the line into the packet's data
+		strcpy(pkt.data, fileBuffer);
+		// set the count to the length of the line (the byte count)
+		pkt.count = strlen(fileBuffer);
+		pkt.pack_seq_num = pkt.pack_seq_num == 1 ? 0 : 1;
+		//pkt.count =  htons(strlen(fileBuffer));
+		//pkt.pack_seq_num = htons(pkt.pack_seq_num);
 
-			// Convert the packet into a buffer array (of bytes) named buff
-			memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
-			
+		// Convert the packet into a buffer array (of bytes) named buff
+		memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
+		printf("Packet %d generated for transmission with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+		if (SimulateLoss(pktlossratio) == 0) {
 			// Send the buffer (buff)
 			//send(clntSocket, buff, sizeof(pkt), 0);
 			len = sizeof(cliaddr);
 			//sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, &len);
 			sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
-			printf("Packet %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
-			
+			printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
 			total += pkt.count;
 
 			// Clear the buffer
@@ -113,26 +124,69 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 
 			// Receive ACK
 			recvfrom(clntSocket, ack_buff, sizeof(ack_buff), 0, (struct sockarr_in*)NULL, NULL);
+			if (errno == EINTR) {
+				printf("hi, i timed out lol\n");
+			}
+			//test = getsockopt(clntSocket, SOL_SOCKET, SO_RCVTIMEO, NULL, NULL);
+			//printf("getsockopt: %d\n", test);
+			recvfrom(clntSocket, ack_buff, sizeof(ack_buff), 0, (struct sockarr_in*)NULL, NULL));
+			if (errno == EAGAIN) {
+					printf("TIMEOUT HITTTTT\n");
+					printf("Packet %d generated for re-transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+					// now resend it
+					sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
+					total += pkt.count;
+					printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			}
+			// while ((respStringLen = recvfrom(clntSocket, ack_buff, sizeof(ack_buff), 0, (struct sockarr_in*)NULL, NULL)) < 0) {
+			// 	if (errno == EAGAIN) {
+			// 		printf("TIMEOUT HITTTTT\n");
+			// 		printf("Packet %d generated for re-transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			// 		// now resend it
+			// 		sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
+			// 		total += pkt.count;
+			// 		printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			// 	}
+			// }
+			
+
+			// alarm(tout);
+			// while ((respStringLen = recvfrom(clntSocket, ack_buff, sizeof(ack_buff), 0, (struct sockarr_in*)NULL, NULL)) < 0) {
+			// 	// alarm went off if true
+			// 	if (errno == EINTR) {
+			// 		// dont simulate loss for retransmission
+			// 		printf("Packet %d generated for re-transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			// 		// now resend it
+			// 		sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
+			// 		total += pkt.count;
+			// 		printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			// 	} else {
+			// 		//DieWithError("recvfrom() flopped");
+			// 	}
+			// }
+			// // if the loop above doesnt go through, cancel the timeout
+			// // in other words, recvfrom() got stuff
+			// alarm(0);
 		
 			// Convert the byte array (echoBuffer) back into a tcp_packet with the name of pkt
 			memcpy(&ack, ack_buff, sizeof(ack_packet));
 			printf("ACK %d received\n", ack.ack_seq);
 		} else {
-			printf("Packet lost, boo-hoo\n");
+			printf("Packet %d lost\n\n", pkt.pack_seq_num);
 		}
 		
 	}
 	// Set the data for the EOT packet
 	strcpy(pkt.data, "");
-	pkt.count =  0;
+	pkt.count = 0;
 	//pkt.count =  htons(strlen(fileBuffer));
 	//pkt.pack_seq_num = htons(pkt.pack_seq_num);
 	// Convert the packet into a buffer array (of bytes) named buff
 	memcpy(buff, (const unsigned char*)&pkt, sizeof(pkt));
 	// Send the buffer
-	send(clntSocket, buff, sizeof(pkt), 0);
-	printf("End of Transmission Packet with sequence number %d transmitted with 1 data bytes\n", pkt.pack_seq_num);
-	printf("Total number of data bytes received: %d\n", total);
+	sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
+	printf("End of Transmission Packet with sequence number %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+	printf("Total number of data bytes transmitted: %d\n", total);
 
 	// Clear the buffer
 	memset(buff, 0, sizeof(buff));
@@ -149,6 +203,7 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 	return 0;
 }
 
+// Simulating the loss of a packet with the packet loss ration provided by the user
 int SimulateLoss(float packetLossRatio) {
 	// rand() % (upper - lower + 1) + lower for random number between 1 and 0
 	if (rand() % (1 - 0 + 1) + 0 < packetLossRatio)
@@ -157,6 +212,7 @@ int SimulateLoss(float packetLossRatio) {
 		return 0;
 }
 
+// Power function, importing math libary didn't work out so just wrote it
 int power(int x, int y) {
 	int ret = 1;
 	for (int i = 0; i < y; i++)
@@ -164,6 +220,7 @@ int power(int x, int y) {
 	return ret;
 }
 
+// Handler for SIGALRM
 void CatchAlarm(int ignored) {
-	
+	printf("ACK NEVER RECEIVED, SIGALRM WENT OFF\n");
 }

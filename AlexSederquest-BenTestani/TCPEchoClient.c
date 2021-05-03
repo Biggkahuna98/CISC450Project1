@@ -13,6 +13,7 @@
 #define RCVBUFSIZE 84 /*Size of receive buffer*/
 
 void DieWithError(char *errorMessage);
+int SimulateACKLoss(float ackLossRatio);
 
 int main(int argc, char *argv[])
 {
@@ -44,6 +45,7 @@ int main(int argc, char *argv[])
 	strcpy(echoString, argv[3]);
 	acklossratio = strtof(argv[4], NULL);
 	echoServPort = atoi(argv[2]);
+	printf("ACK LOSS IS: %f\n", acklossratio);
 
 	/*Create a socket using TCP*/
 	if((sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP))<0)
@@ -96,34 +98,33 @@ int main(int argc, char *argv[])
 
 	// Loop for receiving data back from the server
 	int total = 0;
-	printf("Received: \n");
 	while (1)
 	{
 		// Receive data from server, store in the buffer named echoBuffer
 		// if((bytesRcvd = recv(sock, echoBuffer, RCVBUFSIZE, 0))<=0)
 		// 	DieWithError("recv() failed or connection closed prematurely");
 		bytesRcvd = recvfrom(sock, echoBuffer, sizeof(echoBuffer), 0, (struct sockarr_in*)NULL, NULL);
-		if (SimulateLoss(acklossratio) == 0) {
+		if (SimulateACKLoss(acklossratio) == 0) {
 			// send ACK
 			ack.ack_seq = ack.ack_seq == 1 ? 0 : 1;
 			// Copy the pkt into a byte array
 			memcpy(ack_buff, (const unsigned char*)&ack, sizeof(ack));
 			sendto(sock, ack_buff, sizeof(ack_buff), 0, (struct sockaddr_in*)NULL, sizeof(echoServAddr));
 		} else {
-			printf("Ack lost, rip\n");
+			printf("Ack %d lost\n", ack.ack_seq);
 		}
-		totalBytesRcvd += bytesRcvd;
+		//totalBytesRcvd += bytesRcvd;
 		
 		// Convert the byte array (echoBuffer) back into a tcp_packet with the name of pkt
 		memcpy(&pkt, echoBuffer, sizeof(tcp_packet));
 
-		// Check for the EOT packet
-		if(pkt.count == 0){
-			printf("End of Transmission Packet with sequence number %d received with %d data bytes\n", pkt.pack_seq_num,pkt.count);
-			break;
-		}
 		printf("Packet %d received with %d data bytes\n", pkt.pack_seq_num, pkt.count);
 		total += pkt.count;
+		// Check for the EOT packet
+		if(pkt.count == 0){
+			printf("End of Transmission Packet with sequence number %d received with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			break;
+		}
 		
 		// Make a nice space for readability in the terminal
     	printf("\n");
@@ -134,6 +135,7 @@ int main(int argc, char *argv[])
 		strcpy(outputBuffer, pkt.data);
 		// Write the line to the file out.txt
 		fprintf(filePointer, outputBuffer);
+		printf("Packet %d delivered to user\n", pkt.pack_seq_num);
 	}
 
 	// Total bytes received as well as closing the socket
@@ -149,7 +151,9 @@ int main(int argc, char *argv[])
 
 int SimulateACKLoss(float ackLossRatio) {
 	// rand() % (upper - lower + 1) + lower for random number between 1 and 0
-	if (rand() % (1 - 0 + 1) + 0 < ackLossRatio)
+	int lossNum = rand() % 2;
+	printf("Simulate Ack Loss Generated Number: %d\n", lossNum);
+	if (lossNum < ackLossRatio)
 		return 1;
 	else
 		return 0;
