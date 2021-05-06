@@ -97,8 +97,16 @@ int main(int argc, char *argv[])
 	memset(ack_buff, 0, sizeof(ack_packet));
 
 	// Loop for receiving data back from the server
+	int totalinitial = 0;
 	int total = 0;
-	int lastSeqNum = -1;
+	int num_pkts = 0;
+	int num_dup_pkts = 0;
+	int num_orig_pkts = 0;
+	int num_success_ack = 0;
+	int num_failed_ack = 0;
+	int total_ack = 0;
+	int lastSeqNum = 1;
+	int lastPktCount = 1;
 	while (1)
 	{
 		// Receive data from server, store in the buffer named echoBuffer
@@ -109,13 +117,18 @@ int main(int argc, char *argv[])
 
 		// Convert the byte array (echoBuffer) back into a tcp_packet with the name of pkt
 		memcpy(&pkt, buff, sizeof(tcp_packet));
-		if (lastSeqNum == pkt.pack_seq_num) {
+		if (lastSeqNum == pkt.pack_seq_num && lastPktCount == pkt.count) {
 			printf("Duplicate packet %d received with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			num_dup_pkts++;
+		} else {
+			printf("Packet %d received with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+			fflush(stdout);
+			totalinitial += pkt.count;
+			num_orig_pkts++;
 		}
 		lastSeqNum = pkt.pack_seq_num;
-
-		printf("Packet %d received with %d data bytes\n", pkt.pack_seq_num, pkt.count);
-		fflush(stdout);
+		lastPktCount = pkt.count;
+		num_pkts++;
 		total += pkt.count;
 		
 		// Make a nice space for readability in the terminal
@@ -140,10 +153,13 @@ int main(int argc, char *argv[])
 			sendto(sock, ack_buff, sizeof(ack_packet), 0, (struct sockaddr_in*)NULL, sizeof(echoServAddr));
 			printf("ACK %d successfully transmitted\n", ack.ack_seq);
 			fflush(stdout);
+			num_success_ack++;
 		} else {
 			printf("Ack %d lost\n", ack.ack_seq);
 			fflush(stdout);
+			num_failed_ack++;
 		}
+		total_ack++;
 		printf("\n");
 		fflush(stdout);
 		//totalBytesRcvd += bytesRcvd;
@@ -154,7 +170,13 @@ int main(int argc, char *argv[])
 			break;
 		}
 	}
-
+	
+	printf("Total number of data packets received successfully: %d\n", num_pkts);
+	printf("Number of duplicate data packets received: %d\n", num_dup_pkts);
+	printf("Number of data packets received successfully, not including duplicates: %d\n", num_orig_pkts);
+	printf("Number of ACKs transmitted without loss: %d\n", num_success_ack);
+	printf("Number of ACKs generated but dropped due to loss: %d\n", num_failed_ack);
+	printf("Total number of ACKs generated (with and without loss): %d\n", total_ack);
 	// Total bytes received as well as closing the socket
 	printf("Total number of data bytes received: %d\n", total);
 	// Close the output file
