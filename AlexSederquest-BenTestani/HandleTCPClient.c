@@ -93,11 +93,11 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 	// Read in the file line by line
 	// Create a packet from each line
 	// Send the packet
-	while(state != 3) {	
+	while(state != 4) {	
 		switch(state) {
 			case 0: // generate new packet
 				if (fgets(fileBuffer, fileBufferLength, filePointer)  == NULL) {
-					state = 3;
+					state = 4;
 					break; // exit point for loop
 				}
 			
@@ -133,13 +133,19 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 				while ((respStringLen = recvfrom(clntSocket, ack_buff, sizeof(ack_packet), 0, (struct sockarr_in*)NULL, NULL)) < 0) {
 					// alarm went off if true
 					if (errno == EINTR) {
-						// dont simulate loss for retransmission
 						printf("Packet %d generated for re-transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
-						// now resend it
-						sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
-						total += pkt.count;
-						printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
-						break;
+						//simulate packet loss for retransmission
+						if(SimulateLoss(pktlossratio) == 0){
+							// now resend it
+							sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
+							total += pkt.count;
+							printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+							break;
+						} else{
+							printf("Packet %d lost\n\n", pkt.pack_seq_num);
+							state = 3;
+						}
+						
 					} else {
 						//DieWithError("recvfrom() flopped");
 					}
@@ -158,7 +164,13 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 				fflush(stdout);
 				state = 0;
 				break;
-			case 3: // break loop, end of file
+			case 3: //resending failed
+				sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
+				total += pkt.count;
+				printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+				state = 1;
+				break;
+			case 4: // break loop, end of file
 				break;
 		}
 	}
