@@ -82,6 +82,11 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 		DieWithError("sigaction() failed for SIGALRM");
 
 	int total = 0;
+	int total_initial_tr = 0;
+	int total_initial_bytes = 0;
+	int num_pkt_retr = 0;
+
+
 	int len = 0;
 	int respStringLen = 0;
 	int ackReceived = 0;
@@ -121,6 +126,8 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 					printf("Packet %d successfully transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
 					total += pkt.count;
 					state = 1;
+					total_initial_tr++;
+					total_initial_bytes += pkt.count;
 
 				} else {
 					printf("Packet %d lost\n\n", pkt.pack_seq_num);
@@ -134,7 +141,9 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 					// alarm went off if true
 					if (errno == EINTR) {
 						// dont simulate loss for retransmission
+						printf("Timeout expired for packet numbered %d\n", pkt.count);
 						printf("Packet %d generated for re-transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
+						num_pkt_retr++;
 						// now resend it
 						sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
 						total += pkt.count;
@@ -172,7 +181,12 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 	// Send the buffer
 	sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
 	printf("End of Transmission Packet with sequence number %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
-	printf("Total number of data bytes transmitted: %d\n", total);
+	printf("Number of data packets generated for transmission (initial transmission only): %d\n", total_initial_tr);
+	printf("otal number of data bytes generated for transmission, initial transmission only: %d\n", total_initial_bytes);
+	printf("Total number of data packets generated for retransmission (initial transmissions plus retransmissions): %d\n", total_initial_tr+num_pkt_retr);
+	
+	
+	printf("(NOT NEEDED?) Total number of data bytes transmitted: %d\n", total);
 
 	// Clear the buffer
 	memset(buff, 0, sizeof(buff));
