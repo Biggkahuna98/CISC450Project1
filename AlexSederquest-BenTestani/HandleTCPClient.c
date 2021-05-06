@@ -85,7 +85,9 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 	int total_initial_tr = 0;
 	int total_initial_bytes = 0;
 	int num_pkt_retr = 0;
-
+	int num_pkt_lost = 0;
+	int num_ack_recv = 0;
+	int num_timeouts = 0;
 
 	int len = 0;
 	int respStringLen = 0;
@@ -132,6 +134,7 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 				} else {
 					printf("Packet %d lost\n\n", pkt.pack_seq_num);
 					state = 0;
+					num_pkt_lost++;
 				}
 				break;
 
@@ -144,6 +147,7 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 						printf("Timeout expired for packet numbered %d\n", pkt.count);
 						printf("Packet %d generated for re-transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
 						num_pkt_retr++;
+						num_timeouts++;
 						// now resend it
 						sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
 						total += pkt.count;
@@ -165,6 +169,7 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 				memset(buff, 0, sizeof(buff));
 				printf("\n");
 				fflush(stdout);
+				num_ack_recv++;
 				state = 0;
 				break;
 			case 3: // break loop, end of file
@@ -182,8 +187,13 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 	sendto(clntSocket, buff, sizeof(pkt), 0, (struct sockaddr_in*)&cliaddr, len);
 	printf("End of Transmission Packet with sequence number %d transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
 	printf("Number of data packets generated for transmission (initial transmission only): %d\n", total_initial_tr);
-	printf("otal number of data bytes generated for transmission, initial transmission only: %d\n", total_initial_bytes);
-	printf("Total number of data packets generated for retransmission (initial transmissions plus retransmissions): %d\n", total_initial_tr+num_pkt_retr);
+	printf("Total number of data bytes generated for transmission, initial transmission only: %d\n", total_initial_bytes);
+	printf("Total number of data packets generated for retransmission (initial transmissions plus retransmissions): %d\n", num_pkt_retr);
+	printf("Number of data packets dropped due to loss: %d\n", num_pkt_lost);
+	printf("Number of data packets transmitted successfully (initial transmissions plus retransmissions): %d\n", total_initial_tr+num_pkt_retr);
+	printf("Number of ACKs received: %d\n", num_ack_recv);
+	printf("Count of how many times timeout expired: %d\n", num_timeouts);
+
 	
 	
 	printf("(NOT NEEDED?) Total number of data bytes transmitted: %d\n", total);
