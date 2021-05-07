@@ -134,7 +134,6 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 					if (errno == EINTR) {
 						printf("Timeout expired for packet numbered %d\n", pkt.count);
 						retransmit = 1;
-						num_pkt_retr++;
 						num_timeouts++;
 						state = 3; // try to resend packet
 						break;	
@@ -158,6 +157,7 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 			case 3: // send a packet
 				if (SimulateLoss(pktlossratio) == 0) {
 					if (retransmit == 1) {
+						num_pkt_retr++;
 						printf("Packet %d generated for re-transmitted with %d data bytes\n", pkt.pack_seq_num, pkt.count);
 						fflush(stdout);
 						retransmit = 0;
@@ -200,8 +200,6 @@ int HandleTCPClient(int clntSocket, int servSocket, struct sockaddr_in servaddr,
 	printf("Number of data packets transmitted successfully (initial transmissions plus retransmissions): %d\n", total_initial_tr+num_pkt_retr);
 	printf("Number of ACKs received: %d\n", num_ack_recv);
 	printf("Count of how many times timeout expired: %d\n", num_timeouts);
-	printf("(NOT NEEDED?) Total number of data bytes transmitted: %d\n", total);
-
 	fflush(stdout);
 
 	// Clear the buffer
